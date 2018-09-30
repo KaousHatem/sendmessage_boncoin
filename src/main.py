@@ -72,13 +72,11 @@ def sendMessageToUrl(url,name,email,message):
 				log_e(code,product[1])
 		page+=1
 		results = getProductsByPage(url,page)
-		if page == 3:
-			break
 
 
 if __name__ == '__main__':
-	# name = input('Enter your name: ')
-	# email = input('Enter your email: ')
-	# message = input('Enter your message: ')
+	name = input('Enter your name: ')
+	email = input('Enter your email: ')
+	message = input('Enter your message: ')
 	url = 'https://www.leboncoin.fr/voitures/offres/centre/'
-	sendMessageToUrl(url,'ridan','ridan@gmail.com','test message!')
+	sendMessageToUrl(url,name,email,message)
