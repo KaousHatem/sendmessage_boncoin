@@ -1,5 +1,6 @@
 from requests import Request,Session
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup
+import pandas as pd 
 
 
 def log_d(code,product,name):
@@ -78,5 +79,7 @@ if __name__ == '__main__':
 	name = input('Enter your name: ')
 	email = input('Enter your email: ')
 	message = input('Enter your message: ')
-	url = 'https://www.leboncoin.fr/voitures/offres/centre/'
-	sendMessageToUrl(url,name,email,message)
+	data = pd.read_csv('links.csv',header=None)
+	urls = list(data[0])
+	for url in urls:
+		sendMessageToUrl(url,name,email,message)
