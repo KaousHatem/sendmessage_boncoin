@@ -6,8 +6,8 @@ from itertools import cycle
 import time
 
 proxy=""
-def log_d(code,product,name):
-	print('[+]---message sent to Name:',name,'Link:',product[0],'---code',code)
+def log_d(code,product,name,phone):
+	print('[+]---message sent to Name:',name,'phone:',phone,'Link:',product[0],'---code',code)
 
 def log_e(code,id_product):
 	print('[-]---message not sent to ',id_product,'---code',code)
@@ -29,6 +29,15 @@ def get_header(host):
 def getId(url):
 	return url.split('/')[-2].split('.')[0]
 
+def ifPhone(url):
+	host = 'api.leboncoin.fr'
+	header = get_header(host)
+	session = Session()
+	with session.get(url=url,headers=header) as response:
+		soup = BeautifulSoup(response.text,'lxml')
+		r = soup.find('div',attrs={'data-qa-id':'adview_contact_container'})
+		return r.find('span',attrs={'name':'phone'})==None
+
 def getPhoneNumber(id_product,proxy):
 	url = 'https://api.leboncoin.fr/api/utils/phonenumber.json'
 	playload = {"app_id":"leboncoin_web_utils","key":"54bb0281238b45a03f0ee695f73e704f","list_id":id_product,"text":"1"}
@@ -45,7 +54,7 @@ def getPhoneNumber(id_product,proxy):
 			code = response.status_code
 			json_data = json.loads(response.text)
 			if 'phonenumber' in json_data['utils'].keys():
-				return (code,response.text)
+				return (code,json_data['utils']['phonenumber'])
 			else:
 				proxy=next(proxy_pool)
 				return getPhoneNumber(id_product,proxy)
@@ -92,18 +101,25 @@ def getProductsByPage(url,page=1):
 def sendMessageToUrl(url,name,email,message,proxy):
 	page = 1
 	results = getProductsByPage(url)
+	info = []
 	while (len(results)):
 		for (name_product,product) in results.items():
-			code_2,num_phone = getPhoneNumber(product[1],proxy)
-			print (code_2,num_phone)
+			print('https://www.leboncoin.fr'+product[0])
+			if(ifPhone('https://www.leboncoin.fr'+product[0])):
+				code_2,num_phone = getPhoneNumber(product[1],proxy)
+				print (code_2,num_phone)
+			else:
+				num_phone = 'none Phone'
+			info.append((name_product,product[0],product[1],num_phone))
 			code,text_response = sendMessage(name,email,message,product[1])
 			if (code == 202) or (code == 200):
-				log_d(code,product,name_product)
+				log_d(code,product,name_product,num_phone)
 			elif(code == 422):
 				print (text_response)
 				log_e(code,product[1])
 		page+=1
 		results = getProductsByPage(url,page)
+	return info
 
 
 if __name__ == '__main__':
@@ -116,5 +132,9 @@ if __name__ == '__main__':
 	message = input('Enter your message: ')
 	data = pd.read_csv('links.csv',header=None)
 	urls = list(data[0])
+	product_info = []
 	for url in urls:
-		sendMessageToUrl(url,name,email,message,proxy)
+		result = sendMessageToUrl(url,name,email,message,proxy)
+		product_info += result
+	df = pd.DataFrame(product_info)
+	df.to_csv('info_products.csv')
